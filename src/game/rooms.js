@@ -9,6 +9,93 @@
 const K = (rows) => ({ kenney: rows });
 
 export const ROOMS = {
+  party: {
+    name: 'The party',
+    wall: 'paper', floor: 'wood',
+    light: { dark: 0.0, personal: 120 },
+    spawn: { x: 40, y: 140, dir: 'right' },
+    glows: [{ x: 60, y: 70, r: 70, warm: true, flicker: true }, { x: 240, y: 80, r: 60 }],
+    props: [
+      { id: 'p_speaker', key: 'speaker', kind: 'floor', x: 34, y: 56, solid: [16, 8] },
+      { id: 'p_speaker', key: 'speaker', kind: 'floor', x: 104, y: 56, solid: [16, 8] },
+      { id: 'p_lamp', key: 'lamp', kind: 'floor', x: 140, y: 56, solid: [8, 6], glow: 40 },
+      { id: 'p_sofa', key: 'sofa', kind: 'floor', x: 180, y: 58, solid: [34, 10] },
+      { id: 'p_drinks', key: 'table', kind: 'floor', x: 250, y: 66, solid: [32, 10] },
+      { id: 'p_plant', key: 'plant', kind: 'floor', x: 300, y: 154, solid: [10, 6] },
+      { id: 'faris', kind: 'npc', sheet: 'imran', tint: 0xe8c860, x: 68, y: 74, dir: 'down' },
+      { id: 'p_guest1', kind: 'npc', sheet: 'imran', tint: 0x9a6a5a, x: 130, y: 120, dir: 'right' },
+      { id: 'p_guest2', kind: 'npc', sheet: 'imran', tint: 0x5a6a9a, x: 160, y: 120, dir: 'left' },
+      { id: 'nikki', kind: 'npc', sheet: 'nikki', needFlag: 'metFaris', x: 232, y: 122, dir: 'left', from: { x: 300, y: 122 } },
+    ],
+    exits: [
+      { id: 'party_door', type: 'door', x: 292, sprite: 'door_closed', lock: 'never' },
+    ],
+  },
+
+  restaurant: {
+    name: 'Restaurant',
+    wall: 'paper', floor: 'carpet',
+    light: { dark: 0.12, personal: 120 },
+    spawn: { x: 160, y: 150, dir: 'up' },
+    glows: [{ x: 160, y: 90, r: 50, warm: true, flicker: true }],
+    props: [
+      { id: 'r_curtain', key: 'curtain', kind: 'wall', x: 64, y: 18 },
+      { id: 'r_curtain', key: 'curtain', kind: 'wall', x: 256, y: 18 },
+      { id: 'r_lamp', key: 'lamp', kind: 'floor', x: 28, y: 58, solid: [8, 6], glow: 44 },
+      { id: 'r_plant', key: 'plant', kind: 'floor', x: 296, y: 56, solid: [10, 6] },
+      { id: 'r_diner', key: 'table', kind: 'floor', x: 64, y: 118, solid: [32, 10] },
+      { id: 'r_diner', key: 'table', kind: 'floor', x: 262, y: 118, solid: [32, 10] },
+      { id: 'r_waiter', kind: 'npc', sheet: 'imran', tint: 0xdddddd, x: 100, y: 68, dir: 'down' },
+      { id: 'nikki', kind: 'npc', sheet: 'nikki', x: 160, y: 86, dir: 'down' },
+      { id: 'dinner_table', key: 'table', kind: 'floor', x: 160, y: 106, solid: [32, 8] },
+    ],
+    exits: [
+      { id: 'restaurant_door', type: 'door', x: 292, sprite: 'door_closed', lock: 'never' },
+    ],
+  },
+
+  porch: {
+    name: 'Her street',
+    wall: 'block', floor: 'concrete',
+    light: { dark: 0.5, personal: 90 },
+    spawn: { x: 160, y: 150, dir: 'up' },
+    glows: [{ x: 200, y: 50, r: 60 }],
+    props: [
+      { id: 'porch_camera', key: 'camera', kind: 'wall', x: 130, y: 12, led: true },
+      { id: 'porch_curtain', key: 'curtain', kind: 'wall', x: 64, y: 18 },
+      { id: 'porch_curtain', key: 'curtain', kind: 'wall', x: 256, y: 18 },
+      { id: 'porch_lamp', key: 'lamp', kind: 'floor', x: 214, y: 56, solid: [8, 6], glow: 60 },
+      { id: 'porch_plant', key: 'plant', kind: 'floor', x: 112, y: 58, solid: [10, 6] },
+      { id: 'porch_plant', key: 'plant', kind: 'floor', x: 30, y: 154, solid: [10, 6] },
+      { id: 'nikki', kind: 'npc', sheet: 'nikki', x: 130, y: 82, dir: 'right' },
+    ],
+    exits: [
+      { id: 'porch_door', type: 'door', x: 160, sprite: 'door_closed', lock: 'never' },
+    ],
+  },
+
+  home: {
+    name: 'Her house',
+    wall: 'paper', floor: 'wood',
+    light: { dark: 0.05, personal: 120 },
+    spawn: { x: 284, y: 58, dir: 'down' },
+    props: [
+      { id: 'h_curtain', key: 'curtain', kind: 'wall', x: 64, y: 18 },
+      { id: 'h_curtain', key: 'curtain', kind: 'wall', x: 256, y: 18 },
+      { id: 'h_camera', key: 'camera', kind: 'wall', x: 150, y: 12, led: true },
+      { id: 'h_lamp', key: 'lamp', kind: 'floor', x: 28, y: 58, solid: [8, 6], glow: 44 },
+      { id: 'h_shelves', key: 'shelves', kind: 'floor', x: 70, y: 52, solid: [34, 8] },
+      { id: 'h_table', key: 'table', kind: 'floor', x: 160, y: 118, solid: [32, 10] },
+      { id: 'h_sofa', key: 'sofa', kind: 'floor', x: 100, y: 128, solid: [34, 10] },
+      { id: 'h_plant', key: 'plant', kind: 'floor', x: 296, y: 154, solid: [10, 6] },
+      { id: 'nikki', kind: 'npc', sheet: 'nikki', x: 238, y: 100, dir: 'left' },
+    ],
+    exits: [
+      { id: 'home_kitchen', type: 'door', x: 198, sprite: 'door_closed', lock: 'never' },
+      { id: 'home_door', type: 'door', x: 284, sprite: 'door_locked', lock: 'never' },
+    ],
+  },
+
   cell: {
     name: 'Basement',
     wall: 'block', floor: 'concrete',

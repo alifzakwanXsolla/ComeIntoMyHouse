@@ -40,3 +40,7 @@ export async function interstitial() {
   catch (e) { return { success: false }; }
   finally { setPaused('ad', false); }
 }
+
+export function updateLevel(n) {
+  try { sdk()?.updateLevel?.(n); } catch (e) { /* ignore */ }
+}

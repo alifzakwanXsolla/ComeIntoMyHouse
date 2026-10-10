@@ -1,7 +1,7 @@
 // What happens when you press E on something. One case per object id (rooms.js).
 import { bus } from '../bus.js';
 import { S, has, set, take, saveCheckpoint } from './state.js';
-import { LOOK, BEATS } from './story.js';
+import { LOOK, BEATS, PLOOK, PARTY, DINNER, PORCH, DRINK } from './story.js';
 import * as panels from './panels.js';
 
 export function interact(sc, id) {
@@ -93,8 +93,49 @@ export function interact(sc, id) {
     case 'wardrobe':
       return sc.look(id);
 
+    // ------------------------------------------------ first half: party, dinner, her house
+    case 'faris':
+      if (has('metFaris')) return sc.say(PARTY.farisAgain);
+      return sc.say(PARTY.faris, () => sc.say(PARTY.walkBy, () => { set('metFaris'); sc.revealNpcs(); }));
+
+    case 'party_door':
+      return sc.say(PARTY.exitAsk, () => sc.choose(PARTY.exitChoice, (i) => { if (i === 1) sc.say(PARTY.exitLeave, () => sc.ending('B')); }));
+
+    case 'nikki':
+      if (sc.roomId === 'party') {
+        if (has('metNikki')) return sc.say(PARTY.again, () => askParty(sc));
+        return sc.say(PARTY.talk, () => { set('metNikki'); askParty(sc); });
+      }
+      if (sc.roomId === 'restaurant') return dinner(sc);
+      if (sc.roomId === 'porch') return sc.say(PORCH.nikki);
+      if (sc.roomId === 'home') {
+        const n = S.flags.chat || 0;
+        S.flags.chat = n + 1;
+        return sc.say(DRINK.chat[n % DRINK.chat.length]);
+      }
+      return;
+
+    case 'dinner_table':
+      return dinner(sc);
+
+    case 'restaurant_door':
+      return sc.say(DINNER.exitStuck);
+
+    case 'porch_door':
+      return sc.say(PORCH.enter, () => { sc.sfx('lock'); sc.go('home', { x: 284, y: 58, dir: 'down' }); });
+
+    case 'home_door':
+      return sc.say(DRINK.frontLocked);
+
+    case 'home_kitchen':
+      return sc.say(DRINK.kitchenDoor);
+
+    case 'h_sofa':
+      return sc.drinkScene();
+
     default:
       if (LOOK[id]) return sc.look(id);
+      if (PLOOK[id]) return sc.say(PLOOK[id]);
   }
 }
 
@@ -107,4 +148,27 @@ function combine(sc) {
   sc.sfx('click');
   sc.applyLight();
   sc.say(LOOK.batteries_in);
+}
+
+function askParty(sc) {
+  sc.choose(PARTY.choice, (i) => {
+    if (i === 0) return sc.say(PARTY.yes, () => sc.go('restaurant', { x: 160, y: 150, dir: 'up' }));
+    sc.say(PARTY.no, () => sc.ending('B'));
+  });
+}
+
+function dinner(sc) {
+  const d = S.flags.d || 0;
+  if (d < 3) {
+    S.flags.d = d + 1;
+    return sc.say(DINNER['part' + (d + 1)], () => { if (d === 2) askDinner(sc); });
+  }
+  sc.say(DINNER.again, () => askDinner(sc));
+}
+
+function askDinner(sc) {
+  sc.choose(DINNER.choice, (i) => {
+    if (i === 0) return sc.say(DINNER.yes, () => sc.go('porch', { x: 160, y: 150, dir: 'up' }));
+    sc.say(DINNER.no, () => sc.ending('C'));
+  });
 }

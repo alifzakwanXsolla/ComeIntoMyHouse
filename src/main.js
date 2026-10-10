@@ -3,7 +3,7 @@ import { bus } from './bus.js';
 import { initPlatform, gameLoaded } from './platform/gamepix.js';
 import { fitStage } from './platform/fit.js';
 import { initNotes } from './game/notes.js';
-import { BootScene, TitleScene, IntroScene, EndScene } from './game/scenes.js';
+import { BootScene, TitleScene, EndScene } from './game/scenes.js';
 import { RoomScene, W, H } from './game/RoomScene.js';
 
 const ZOOM = 3;
@@ -21,6 +21,8 @@ async function boot() {
   } catch (e) { /* fall back to monospace */ }
 
   initPlatform();
+  window.addEventListener('keydown', (e) => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault(); });
+  window.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
@@ -30,7 +32,7 @@ async function boot() {
     backgroundColor: '#07050b',
     pixelArt: true,
     roundPixels: true,
-    scene: [BootScene, TitleScene, IntroScene, RoomScene, EndScene],
+    scene: [BootScene, TitleScene, RoomScene, EndScene],
   });
   game.registry.set('noteIds', notes.ids);
   window.__deadbolt = game; // handy for debugging in the console

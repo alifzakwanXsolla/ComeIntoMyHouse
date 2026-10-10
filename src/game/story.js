@@ -9,19 +9,192 @@ export const ANSWERS = {
   BOX: '0319',         // trophy box = date of her FIRST boy (Aaron, 2019) from the photo wall
 };
 
-// Intro cards (title -> intro -> wake up). {who} renders as a speaker tag.
-export const INTRO = [
-  { who: '', text: 'Faris dragged me to the party. I hate parties.' },
-  { who: '', text: 'Then she walked past. I spent ten minutes working up the nerve.' },
-  { who: 'NIKKI', text: 'You look like you want to leave. Did you come with friends? Will they be looking for you?' },
-  { who: '', text: 'I asked her to dinner. She said yes. Just like that.' },
-  { who: 'NIKKI', text: 'I had a dog once. Biscuit. I got him the summer of 2014. He is who I miss the most.' },
-  { who: 'NIKKI', text: 'My lucky day is the twelfth of July. Good things always happen on it.' },
-  { who: '', text: 'She never touched her wine. She asked if I live alone. I said yes.' },
-  { who: 'NIKKI', text: 'Come home with me, Imran.' },
-  { who: '', text: 'Her house was very quiet. Very clean. She locked the door behind us and pocketed the key.' },
-  { who: '', text: 'She poured me a drink. I got so tired. She just watched me. She was not smiling anymore.' },
-];
+// ---------------------------------------------------------------------------------------------
+// FIRST HALF (Scenes 1-3). Line format: 'narration' or { who: 'NIKKI', text: '...' }.
+// Keep each page short (about 2 lines at 8px). Choice labels must stay under ~34 characters.
+// Nikki never yells, uses his name often, and her kindest lines should read creepy on a replay.
+// ---------------------------------------------------------------------------------------------
+const N = (text) => ({ who: 'NIKKI', text });
+const I = (text) => ({ who: 'IMRAN', text });
+const F = (text) => ({ who: 'FARIS', text });
+
+// SCENE 1: the party
+export const PARTY = {
+  intro: [
+    'Faris dragged me to this party. I hate parties.',
+    'Too loud. Too many people. I keep checking my phone.',
+    'Maybe I can slip out. Faris is by the speakers.',
+  ],
+  faris: [
+    F('BRO. You came. And you are standing against a wall. Classic.'),
+    I('I said I would stay an hour.'),
+    F('Go talk to someone. Anyone. I am serious.'),
+  ],
+  farisAgain: [F('Go. Talk. To. Someone.')],
+  walkBy: [
+    'Someone walks past, and the whole room goes quiet in my head.',
+    'Long dark hair. A glass in her hand. She does not look lost like me.',
+    'I need a minute to work up the nerve. Then go talk to her.',
+  ],
+  talk: [
+    I('Hi. Um. Nice... glass. Sorry. That was terrible.'),
+    N('Ha! Do not apologise. You are the first person tonight who looks nervous instead of drunk.'),
+    I('I am Imran. I am not usually... here. At parties.'),
+    N('Nikki. And I can tell. It is sweet, Imran. You are very easy to talk to.'),
+    'Her glass is full. I never see her lift it.',
+    N('So, Imran. Did you come with friends? Will they be looking for you if you disappear?'),
+    'She says it with a smile. Like it is a joke.',
+    I('Ha. Faris probably thinks I left already. He does not check.'),
+    N('Poor thing. Nobody to notice. I would notice, Imran.'),
+    'It is going really well. I do not want the night to end.',
+  ],
+  choice: ['Ask her to dinner tonight', 'Say goodnight and leave'],
+  yes: [
+    I('Would you want to get dinner? Tonight? I know it is late.'),
+    N('Tonight? ...Yes. I know a place. Quiet. Candles.'),
+    'Just like that. I forget to breathe.',
+  ],
+  no: [
+    I('It was really nice meeting you. I should head home.'),
+    N('Of course. Goodnight, Imran. Walk safe.'),
+  ],
+};
+
+// SCENE 2: the dinner. The two clues (pet + lucky day) are puzzle answers: keep ANSWERS in sync.
+export const DINNER = {
+  intro: ['Candles. White tablecloth. A violin somewhere.', 'She looks even better in this light.'],
+  part1: [
+    N('Order whatever you like, Imran. I already ate.'),
+    'Her wine arrives. She turns the stem in her fingers and never drinks.',
+    N('Can I tell you something I never tell anyone?'),
+    N('I had a dog once. Biscuit. I got him the summer of 2014.'),
+    N('He is who I miss the most. Even now.'),
+  ],
+  part2: [
+    I('He sounds like a great dog. I am sorry.'),
+    N('Thank you. You listen. Tell me about your family.'),
+    I('Just my mum, overseas. I live alone, honestly.'),
+    N('Alone. In a whole flat. Does anyone visit? ...I am only curious.'),
+    I('What about your friends? Do they know you are out?'),
+    N('Friends? I keep my circle small, Imran. Very small.'),
+  ],
+  part3: [
+    N('You know, we have strange things in common. My lucky day is the twelfth of July.'),
+    N('Good things always happen on it. Maybe tonight too.'),
+    'She leans across the table. Her voice drops.',
+    N('Come home with me, Imran.'),
+  ],
+  choice: ['Go home with her', 'Politely decline'],
+  yes: [I('Okay. Yes. Let us go.'), N('Good boy. I mean... good. I am glad.')],
+  no: [
+    I('I think I should go home. It is late. This was lovely, though.'),
+    N('Of course. I understand. Goodnight, Imran.'),
+    'She smiles, and keeps smiling a little too long.',
+  ],
+};
+
+// SCENE 3: her house
+export const PORCH = {
+  arrive: ['A quiet street. Neighbours far apart. Not one light on.', 'I look around before going in. Something is off.'],
+  enter: [
+    'Cameras over the door I did not expect. Thick curtains on every window.',
+    'My stomach turns. Something is wrong.',
+    '...But I do not want to seem rude. Or paranoid.',
+    N('Coming in, Imran?'),
+  ],
+};
+
+export const DRINK = {
+  inside: ['The house is spotless. Almost empty. No photos anywhere.'],
+  lock: [
+    'Behind me, a heavy click. She turned the deadbolt and pocketed the key.',
+    N('Sorry. Old habit. This neighbourhood.'),
+    'I laugh. It sounds fake.',
+    N('Sit. Phone on the table, Imran. Tonight is just for us.'),
+  ],
+  phone: 'NIKKI TOOK YOUR PHONE',
+  fetch: [N('Let me get you something to drink.')],
+  kitchen: ['I hear a glass in the kitchen. A cupboard. A tiny clink.', 'I never hear ice.'],
+  serve: [
+    N('Here. Drink, Imran.'),
+    I('You are not having one?'),
+    N('I am fine. I like to watch you enjoy yours.'),
+  ],
+  drowsy: [
+    'I drink. The lamp gets too bright. Then too dark.',
+    I('Nikki... I feel... weird...'),
+    N('Shh. It is okay, Imran. Close your eyes.'),
+  ],
+  closeup: 'She was not smiling anymore.',
+};
+
+// Choice endings (stubs). They show a card with a retry from the last checkpoint.
+export const ENDINGS = {
+  B: {
+    lines: ['I took the long way home. A quiet street.', 'Footsteps behind me matched mine. Slow. Patient.', 'I never turned around.'],
+    card: { title: 'ending b: the long walk', sub: 'You never asked. She walked you home anyway.' },
+  },
+  C: {
+    lines: ['I went home alone. I felt lucky.', 'A week later, a car sat outside my flat. Same car, every night.', 'She was never in a hurry.'],
+    card: { title: 'ending c: later', sub: 'She is patient. She can wait.' },
+  },
+};
+
+// Extra first-half text: replay lines, exits, look-at lines for scenery, and hints.
+Object.assign(PARTY, {
+  again: [N('Still here, Imran? Good. I was hoping you would come back.')],
+  exitAsk: ['The door. I could just go home right now.', 'But there is someone I have not even said hello to.'],
+  exitChoice: ['Stay a little longer', 'Leave now'],
+  exitLeave: ['I slip out without a word. The night air is cold.'],
+});
+Object.assign(DINNER, {
+  again: [N('Eat, Imran. You are not hungry? ...I like watching you.')],
+  exitStuck: ['I cannot walk out on her mid-dinner. That would be rude.'],
+});
+Object.assign(PORCH, {
+  nikki: [N('After you, Imran. The door is right there.')],
+  early: ['Something feels off. Look around before going in.'],
+});
+Object.assign(DRINK, {
+  sit: ['I sink into the sofa. It is stiff. Like no one ever sits here.'],
+  chat: [
+    [N('Make yourself comfortable. The sofa is the best seat.')],
+    [N('Do not mind the curtains. I like my privacy, Imran.')],
+    [N('Nobody comes here. It is so peaceful. Do sit.')],
+  ],
+  frontLocked: ['The front door. Deadbolted. The key is in her pocket.', 'Do not be paranoid. Do not be paranoid.'],
+  kitchenDoor: ['The kitchen. I will not go snooping in her kitchen.'],
+});
+
+export const PLOOK = {
+  p_speaker: ['Speakers the size of a fridge. My ears are ringing.'],
+  p_drinks: ['Cups. Cans. Someone spilled something sticky.', 'I should not drink. I want my head clear around her.'],
+  p_sofa: ['Two people making out on the sofa. Not looking.'],
+  p_guest1: ['"Bro, you NEED to try the dip." I do not need to.'],
+  p_guest2: ['Deep in a conversation about football. Not mine.'],
+  p_plant: ['A sad party plant. Same.'],
+  p_lamp: ['A string lamp, glowing pink. Pretty at least.'],
+  r_menu: ['Dishes with names I cannot pronounce. No prices at all.'],
+  r_table: ['A candle and two plates. Cutlery heavier than my phone.'],
+  r_glass: ['Her wine. Not a sip gone. The candle shines through it.'],
+  r_waiter: ['"A good evening, sir." He looks at her, then quickly away.'],
+  r_diner: ['A couple whispering and laughing. Normal people.'],
+  r_curtain: ['Velvet curtains. Heavy. I can hear the violin through them.'],
+  r_plant: ['A real plant. The only one in the room.'],
+  r_lamp: ['A candle-shaped lamp. Warm.'],
+  porch_camera: ['A camera above the door. Another one on the gutter.', 'Why does a quiet street need this?'],
+  porch_curtain: ['Thick curtains. Not a crack of light gets out.'],
+  porch_lamp: ['A porch light. The only light for fifty meters.'],
+  porch_plant: ['Pots with dead flowers. Even those are neatly lined up.'],
+  porch_street: ['No cars. No voices. Not even a dog barking.'],
+  h_curtain: ['More curtains. Taped to the wall at the edges.'],
+  h_camera: ['A small camera in the corner, pointed at the sofa.', 'I tell myself it is for security.'],
+  h_shelves: ['Empty shelves. Not a single photo. Not a single book.'],
+  h_table: ['Two glasses on a coaster, set out ahead of time.'],
+  h_lamp: ['A warm lamp. The only cozy thing in this house.'],
+  h_plant: ['The soil is bone dry. It is fake.'],
+  h_rug: ['A rug, vacuumed in perfect lines.'],
+};
 
 export const WAKE = [
   'Dark. Cold floor. My head is so heavy.',
@@ -124,6 +297,13 @@ export const NOTES = {
 
 // Hints by objective (H key). Three tiers: nudge -> pointer -> near answer.
 export const HINTS = {
+  party_faris: ['Faris is by the speakers. Walk up to him and press E.'],
+  party_nikki: ['Find the woman with the long dark hair. Press E next to her.'],
+  party_choice: ['Talk to Nikki again if you want to ask her out.'],
+  dinner: ['Sit near Nikki and press E on her. Listen carefully, I may need it later.'],
+  porch: ['Look around the porch (E on things). Then go to the front door.'],
+  house_early: ['Look around the house, then sit on the sofa.'],
+  house_sit: ['Sit on the sofa (E).'],
   light: ['It is too dark to do anything. I need light.', 'The toolbox near the bottom of the room had a flashlight.', 'Flashlight from the toolbox, batteries from the wall clock.'],
   pc: ['That screen wants a password. The sticky note is a riddle.', 'Who did she say she misses the most at dinner? Check my notes (N).', 'Her dog\'s name plus the year she GOT him. Not the year he died.'],
   door: ['The door has a hatch with a keypad. The PC may know the code.', 'Her log says the code is her "lucky day". She told me at dinner.', '12 July as month and day: 0712. The worn keys agree.'],

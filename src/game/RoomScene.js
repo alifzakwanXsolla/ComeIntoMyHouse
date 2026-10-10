@@ -4,7 +4,8 @@ import { bus } from '../bus.js';
 import { frameIndex } from '../art/characters.js';
 import { ROOMS } from './rooms.js';
 import { S, has, set, give, objective, saveCheckpoint, loadCheckpoint } from './state.js';
-import { LOOK, BEATS, HINTS, GAMEOVER, WAKE } from './story.js';
+import { LOOK, BEATS, HINTS, GAMEOVER, WAKE, PARTY, DINNER, PORCH, DRINK, ENDINGS } from './story.js';
+import { updateLevel, interstitial } from '../platform/gamepix.js';
 import { Light } from './light.js';
 import { Dialog } from './dialog.js';
 import { interact } from './interact.js';
@@ -34,6 +35,8 @@ export class RoomScene extends Phaser.Scene {
     this.audio = this.registry.get('audio');
     this.frozen = 0;            // >0 = player cannot move (cutscene, panel)
     this.leaving = false;
+    this.choosing = false;
+    this.npcs = {}; this.pendingNpcs = [];
     this.noise = 0;
     this.noiseOn = false;
     this.noiseMode = 'walk';
@@ -123,6 +126,10 @@ export class RoomScene extends Phaser.Scene {
 
   addProp(p) {
     if (p.hideFlag && has(p.hideFlag)) return;
+    if (p.kind === 'npc') {
+      if (p.needFlag && !has(p.needFlag)) { this.pendingNpcs.push(p); return; }
+      return this.spawnNpc(p, false);
+    }
     let img, rect;
     if (p.kenney) {
       const rows = p.kenney, w = rows[0].length * T, hgt = rows.length * T;
@@ -156,6 +163,30 @@ export class RoomScene extends Phaser.Scene {
     }
     if (img && p.tint) img.setTint(p.tint);
     if (p.id) { this.targets.push({ id: p.id, rect, hide: p.hide }); if (img) this.propImgs[p.id] = img; }
+  }
+
+  spawnNpc(p, walkIn) {
+    const spr = this.add.sprite(walkIn && p.from ? p.from.x : p.x, walkIn && p.from ? p.from.y : p.y, p.sheet, frameIndex(p.dir || 'down', 0)).setOrigin(0.5, 1).setDepth(p.y);
+    if (p.tint) spr.setTint(p.tint);
+    this.npcs[p.id] = spr;
+    const settle = () => {
+      spr.setPosition(p.x, p.y).setDepth(p.y).setFrame(frameIndex(p.dir || 'down', 0));
+      const rect = { x: Math.round(p.x - 5), y: p.y - 4, w: 10, h: 4 };
+      this.solids.push(rect);
+      this.targets.push({ id: p.id, rect });
+    };
+    if (!walkIn || !p.from) return settle();
+    const dir = p.from.x > p.x ? 'left' : 'right';
+    this.frozen++;
+    this.tweens.add({ targets: spr, x: p.x, y: p.y, duration: 1800, onUpdate: (tw) => {
+      spr.setDepth(spr.y).setFrame(frameIndex(dir, [1, 0, 2, 0][Math.floor(tw.elapsed / 130) % 4]));
+    }, onComplete: () => { this.frozen = Math.max(0, this.frozen - 1); settle(); } });
+  }
+
+  revealNpcs() {
+    const list = this.pendingNpcs.filter((p) => has(p.needFlag));
+    this.pendingNpcs = this.pendingNpcs.filter((p) => !has(p.needFlag));
+    list.forEach((p) => this.spawnNpc(p, true));
   }
 
   addExit(e) {
@@ -214,7 +245,7 @@ export class RoomScene extends Phaser.Scene {
   setupInput() {
     this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,E,SPACE,ENTER,F,H', false);
     const act = () => {
-      if (panels.isOpen()) return;
+      if (panels.isOpen() || this.choosing) return;
       if (this.dialog.advance()) return;
       if (this.frozen || this.leaving) return;
       this.tryInteract();
@@ -251,6 +282,91 @@ export class RoomScene extends Phaser.Scene {
     if (this.roomId === 'cell' && has('light')) this.light.dark = 0.93;
   }
 
+  // two-or-more option menu; cb(index). Player is frozen while it is up.
+  choose(options, cb) {
+    this.frozen++; this.choosing = true;
+    let sel = 0;
+    const h = 14 + options.length * 16;
+    const box = this.add.nineslice(40, 60, 'box9', undefined, W - 80, h, 8, 8, 8, 8).setOrigin(0).setDepth(3000);
+    const rows = options.map((o, i) => this.add.text(52, 70 + i * 16, '', { fontFamily: FONT, fontSize: '8px', color: '#f2e6d8' }).setDepth(3001));
+    const draw = () => rows.forEach((r, i) => r.setText(`${i === sel ? '> ' : '  '}${options[i]}`).setColor(i === sel ? '#e0607e' : '#a89a8a'));
+    draw();
+    const kb = this.input.keyboard;
+    const up = () => { sel = (sel + options.length - 1) % options.length; draw(); this.sfx('click'); };
+    const down = () => { sel = (sel + 1) % options.length; draw(); this.sfx('click'); };
+    const names = ['keydown-W', 'keydown-UP'], dn = ['keydown-S', 'keydown-DOWN'], ok = ['keydown-E', 'keydown-ENTER', 'keydown-SPACE'];
+    const pick = () => {
+      names.forEach((n) => kb.off(n, up)); dn.forEach((n) => kb.off(n, down)); ok.forEach((n) => kb.off(n, pick));
+      box.destroy(); rows.forEach((r) => r.destroy());
+      setTimeout(() => { this.choosing = false; this.frozen = Math.max(0, this.frozen - 1); cb(sel); }, 0);
+    };
+    names.forEach((n) => kb.on(n, up)); dn.forEach((n) => kb.on(n, down));
+    setTimeout(() => { if (this.choosing) ok.forEach((n) => kb.on(n, pick)); }, 150);
+  }
+
+  // ending card for the early "no" paths; retry restarts from the chapter checkpoint
+  ending(id) {
+    if (this.leaving) return;
+    this.leaving = true; this.frozen++;
+    const e = ENDINGS[id];
+    this.audio?.stopLoops?.();
+    this.cameras.main.fadeOut(900, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', async () => {
+      const wait = (ms) => new Promise((r) => this.time.delayedCall(ms, r));
+      const bg = this.add.rectangle(0, 0, W, H, 0x000000).setOrigin(0).setDepth(5000).setScrollFactor(0);
+      this.cameras.main.setAlpha(1); this.cameras.main.resetFX();
+      const mk = (y, size, color) => this.add.text(W / 2, y, '', { fontFamily: FONT, fontSize: size, color, align: 'center', wordWrap: { width: W - 40 }, lineSpacing: 6 }).setOrigin(0.5).setDepth(5001);
+      const txt = mk(80, '8px', '#f2e6d8');
+      for (const line of e.lines) {
+        txt.setAlpha(0).setText(line);
+        this.tweens.add({ targets: txt, alpha: 1, duration: 600 });
+        await wait(2600);
+      }
+      txt.setText('');
+      mk(64, '8px', '#e0607e').setText(e.card.title.toUpperCase());
+      mk(88, '6px', '#a89a8a').setText(e.card.sub);
+      const again = mk(150, '6px', '#f2e6d8').setText('press E to try again');
+      this.tweens.add({ targets: again, alpha: 0.3, yoyo: true, repeat: -1, duration: 900 });
+      await new Promise((r) => this.input.keyboard.once('keydown-E', r));
+      await interstitial();
+      loadCheckpoint();
+      this.scene.restart({ room: S.room, spawn: S.spawn });
+    });
+  }
+
+  // scene 3 finale: sit on the sofa, she brings a drink, lights go out, close-up, wake in the cell
+  drinkScene() {
+    const nik = this.npcs.nikki;
+    const say = (l) => new Promise((r) => this.say(l, r));
+    const wait = (ms) => new Promise((r) => this.time.delayedCall(ms, r));
+    const walk = (x, y) => new Promise((r) => { this.tweens.add({ targets: nik, x, y, duration: 1400, onUpdate: (tw) => nik.setDepth(nik.y).setFrame(frameIndex(nik.x > x ? 'left' : 'right', [1, 0, 2, 0][Math.floor(tw.elapsed / 130) % 4])), onComplete: r }); });
+    (async () => {
+      this.frozen++;
+      this.p.x = 100; this.p.y = 128; this.p.dir = 'down';
+      await say(DRINK.sit);
+      await say(DRINK.fetch);
+      await walk(198, 50); nik.setVisible(false);
+      await say(DRINK.kitchen);
+      nik.setVisible(true); await walk(124, 126); nik.setFrame(frameIndex('left', 0));
+      await say(DRINK.serve);
+      await say(DRINK.drowsy);
+      this.leaving = true;
+      this.cameras.main.fadeOut(1800, 0, 0, 0);
+      await wait(2000);
+      const bg = this.add.rectangle(0, 0, W, H, 0x000000).setOrigin(0).setDepth(5000);
+      this.add.sprite(W / 2, 250, 'nikki', frameIndex('down', 0)).setOrigin(0.5, 1).setScale(10).setTint(0xc88890).setDepth(5001);
+      const t = this.add.text(W / 2, 150, DRINK.closeup, { fontFamily: FONT, fontSize: '6px', color: '#f2e6d8' }).setOrigin(0.5).setAlpha(0).setDepth(5002);
+      this.cameras.main.fadeIn(1500, 0, 0, 0);
+      await wait(1500);
+      this.tweens.add({ targets: t, alpha: 1, duration: 900 });
+      await wait(3200);
+      this.cameras.main.fadeOut(1400, 0, 0, 0);
+      await wait(1500);
+      this.audio?.lock?.();
+      this.scene.start('Room', { room: 'cell' });
+    })();
+  }
+
   setDoor(id, key) { this.doorImgs[id]?.setTexture(key); }
 
   hint() {
@@ -265,6 +381,16 @@ export class RoomScene extends Phaser.Scene {
   onEnter() {
     const id = this.roomId;
     const once = (k, fn) => { if (!S.seen[k]) { S.seen[k] = true; fn(); } };
+    if (id === 'party' && !S.seen.party) { saveCheckpoint('party', this.spawnAt); S.seen.party = true; updateLevel(1); this.time.delayedCall(600, () => this.say(PARTY.intro)); }
+    if (id === 'restaurant' && !S.seen.restaurant) { saveCheckpoint('restaurant', this.spawnAt); S.seen.restaurant = true; updateLevel(2); this.time.delayedCall(600, () => this.say(DINNER.intro)); }
+    if (id === 'porch' && !S.seen.porch) { S.seen.porch = true; updateLevel(3); this.time.delayedCall(600, () => this.say(PORCH.arrive)); }
+    if (id === 'home' && !S.seen.home) {
+      S.seen.home = true;
+      this.time.delayedCall(600, () => this.say(DRINK.inside, () => {
+        this.sfx('lock');
+        this.say(DRINK.lock, () => { set('locked'); this.flashCenter(DRINK.phone, 2400); });
+      }));
+    }
     if (id === 'cell') once('wake', () => this.time.delayedCall(500, () => this.say(WAKE, () => { this.note('dinner_pet'); this.note('dinner_lucky'); })));
     if (id === 'corridor' && !S.seen.footsteps) {
       saveCheckpoint('corridor', this.spawnAt);
@@ -372,7 +498,6 @@ export class RoomScene extends Phaser.Scene {
       this.cameras.main.fadeOut(600, 0, 0, 0);
       panels.showGameOver({ ...GAMEOVER, onRetry: () => {
         loadCheckpoint();
-        bus.emit('notes:restore', { ids: this.registry.get('noteIds')?.() || [] });
         this.sfx('setHeartbeat', 64);
         this.scene.restart({ room: S.room, spawn: S.spawn });
       } });

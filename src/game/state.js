@@ -38,6 +38,10 @@ export function take(icon) { S.inv = S.inv.filter((i) => i !== icon); }
 // Current objective, used for hints (H).
 export function objective() {
   const f = S.flags;
+  if (S.room === 'party') return !f.metFaris ? 'party_faris' : !f.metNikki ? 'party_nikki' : 'party_choice';
+  if (S.room === 'restaurant') return 'dinner';
+  if (S.room === 'porch') return 'porch';
+  if (S.room === 'home') return f.locked ? 'house_sit' : 'house_early';
   if (!f.light) return 'light';
   if (!f.pcUnlocked) return 'pc';
   if (!f.doorOpen) return 'door';

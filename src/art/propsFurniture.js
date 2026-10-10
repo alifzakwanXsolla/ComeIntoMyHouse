@@ -125,7 +125,15 @@ function desk() {
   return finish(c);
 }
 
+function speaker() {
+  const { c, x } = mk(18, 26);
+  rect(x, 'x', 1, 1, 16, 24); rect(x, 'k', 2, 2, 14, 22);
+  rect(x, 'H', 6, 5, 6, 5);  rect(x, 'h', 7, 6, 4, 3);
+  rect(x, 'H', 4, 12, 10, 10); rect(x, 'h', 5, 13, 8, 8); rect(x, 'k', 7, 15, 4, 4);
+  return finish(c);
+}
+
 export function makeFurniture() {
-  return { sofa: sofa(), table: table(), fridge: fridge(), stove: stove(), bed: bed(), wardrobe: wardrobe(),
+  return { speaker: speaker(), sofa: sofa(), table: table(), fridge: fridge(), stove: stove(), bed: bed(), wardrobe: wardrobe(),
     lamp: lamp(), plant: plant(), toolbox: toolbox(), shelves: shelves(), desk_pc: desk() };
 }

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pixel test room</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; height:100%; background:#0b0708; overflow:hidden; }
+  #game { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  #game canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+  #help { position:fixed; left:8px; bottom:6px; font:10px monospace; color:#8a7f8f; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="help">WASD / arrows move &middot; Shift sneak &middot; F flashlight &middot; E interact &middot; H hide pose &middot; L lights on/off</div>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script type="module" src="src/testroom/main.js"></script>
+</body>
+</html>

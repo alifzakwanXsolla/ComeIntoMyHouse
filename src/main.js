@@ -1,22 +1,45 @@
-import { CONFIG } from './config.js';
+// Deadbolt entry point. Game code lives in src/game/, pixel art in src/art/.
 import { bus } from './bus.js';
-import { initPhoneStub } from './phone/phoneStub.js';
-import { BootScene } from './scenes/BootScene.js';
-import { GameScene } from './scenes/GameScene.js';
-import { TitleScene, EndScene } from './scenes/EndScene.js';
+import { initPlatform, gameLoaded } from './platform/gamepix.js';
+import { fitStage } from './platform/fit.js';
+import { initNotes } from './game/notes.js';
+import { BootScene, TitleScene, IntroScene, EndScene } from './game/scenes.js';
+import { RoomScene, W, H } from './game/RoomScene.js';
 
-// Phone: swap this line for the real phone UI. It only needs the bus (docs/PHONE_API.md).
-initPhoneStub(bus, document.getElementById('phone'));
+const ZOOM = 3;
+const notes = initNotes(document.getElementById('notes'));
 
-// Log every event so the contract is easy to inspect in the console.
-bus.on('*', (type, data) => { if (new URLSearchParams(location.search).get('log')) console.log('[bus]', type, data); });
+if (new URLSearchParams(location.search).get('log')) bus.on('*', (type, data) => console.log('[bus]', type, data));
 
-new Phaser.Game({
-  type: Phaser.AUTO,
-  parent: 'game',
-  width: CONFIG.view.width,
-  height: CONFIG.view.height,
-  backgroundColor: '#0b0708',
-  pixelArt: true,
-  scene: [BootScene, TitleScene, GameScene, EndScene],
-});
+async function boot() {
+  // Pixel fonts must be ready before any Text object is created.
+  try {
+    await Promise.race([
+      document.fonts.load('8px "Press Start 2P"'),
+      new Promise((r) => setTimeout(r, 2500)),
+    ]);
+  } catch (e) { /* fall back to monospace */ }
+
+  initPlatform();
+  const game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'game',
+    width: W,
+    height: H,
+    zoom: ZOOM,
+    backgroundColor: '#07050b',
+    pixelArt: true,
+    roundPixels: true,
+    scene: [BootScene, TitleScene, IntroScene, RoomScene, EndScene],
+  });
+  game.registry.set('noteIds', notes.ids);
+  window.__deadbolt = game; // handy for debugging in the console
+  fitStage(document.getElementById('stage'), W * ZOOM, H * ZOOM, () => game.scale.refresh());
+
+  // Hidden tab or ad playing: freeze the loop. Audio listens to the same events.
+  bus.on('platform:pause', () => game.loop.sleep());
+  bus.on('platform:resume', () => game.loop.wake());
+
+  game.events.once('ready', () => { document.getElementById('loading')?.remove(); gameLoaded(); });
+}
+boot();

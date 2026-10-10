@@ -1,24 +1,16 @@
 import { CONFIG } from '../config.js';
 
-// Full-screen darkness overlay with a soft flashlight hole around the player.
+const PX = 4;
+
+// Full-screen darkness overlay with a banded (pixelated) flashlight hole around the player.
 export class Lighting {
   constructor(scene) {
     this.scene = scene;
     const { width, height } = CONFIG.view;
     this.rt = scene.add.renderTexture(0, 0, width, height).setOrigin(0).setScrollFactor(0).setDepth(50);
 
-    // Radial gradient used as the eraser brush.
-    const size = 512;
-    const tex = scene.textures.createCanvas('lightbrush', size, size);
-    const ctx = tex.getContext();
-    const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.1, size / 2, size / 2, size / 2);
-    g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.55, 'rgba(255,255,255,0.8)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-    tex.refresh();
-    this.brush = scene.make.image({ key: 'lightbrush', add: false });
+    // Banded light: stepped discs + a stepped cone, snapped to a 4px grid so edges stay chunky.
+    this.g = scene.make.graphics({ x: 0, y: 0, add: false });
 
     this.flickerUntil = 0;
     this.radius = CONFIG.moods.sweet.radius;
@@ -52,9 +44,47 @@ export class Lighting {
     const sx = px - cam.scrollX;
     const sy = py - cam.scrollY;
 
+    const g = this.g;
+    g.clear();
+    g.fillStyle(0xffffff);
+    const facing = this.scene.facing ?? Math.PI / 2;
+    const L = CONFIG.light;
+    const coneLen = L.coneLength * (r / CONFIG.moods.sweet.radius);
+    const half = (L.coneHalfAngleDeg * Math.PI) / 180;
+    // Outer bands first; erase alphas stack toward the centre.
+    this.disc(sx, sy, r, 0.3);
+    this.disc(sx, sy, r * 0.62, 0.4);
+    this.disc(sx, sy, r * 0.3, 0.55);
+    this.cone(sx, sy, facing, coneLen * 0.9, half, 0.22);
+    this.cone(sx, sy, facing, coneLen * 0.62, half * 0.8, 0.3);
+    this.cone(sx, sy, facing, coneLen * 0.36, half * 0.6, 0.4);
+
     this.rt.clear();
     this.rt.fill(0x000000, a);
-    this.brush.setDisplaySize(r * 2, r * 2);
-    this.rt.erase(this.brush, sx, sy);
+    this.rt.erase(g);
+  }
+
+  poly(pts, alpha) {
+    const q = (v) => Math.round(v / PX) * PX;
+    this.g.fillStyle(0xffffff, alpha);
+    this.g.fillPoints(pts.map(([x, y]) => ({ x: q(x), y: q(y) })), true);
+  }
+
+  disc(x, y, r, alpha) {
+    const pts = [];
+    for (let i = 0; i < 28; i++) {
+      const t = (i / 28) * Math.PI * 2;
+      pts.push([x + Math.cos(t) * r, y + Math.sin(t) * r]);
+    }
+    this.poly(pts, alpha);
+  }
+
+  cone(x, y, ang, len, half, alpha) {
+    const pts = [[x, y]];
+    for (let i = 0; i <= 8; i++) {
+      const t = ang - half + (i / 8) * half * 2;
+      pts.push([x + Math.cos(t) * len, y + Math.sin(t) * len]);
+    }
+    this.poly(pts, alpha);
   }
 }

@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { bus } from '../bus.js';
 
 // WebAudio with procedural fallback. Files in CONFIG.assets.audio are tried first; failures are silent.
 export class GameAudio {
@@ -20,6 +21,8 @@ export class GameAudio {
     this.master = this.ctx.createGain();
     this.master.gain.value = 0.6;
     this.master.connect(this.ctx.destination);
+    bus.on('platform:pause', () => this.ctx.suspend());
+    bus.on('platform:resume', () => this.ctx.resume());
     await Promise.all(Object.entries(CONFIG.assets.audio).map(([k, url]) => this.load(k, url)));
   }
 

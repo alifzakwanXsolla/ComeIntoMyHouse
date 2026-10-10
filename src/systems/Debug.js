@@ -36,6 +36,9 @@ export class Debug {
       s.refreshDoors();
     });
     this.btn('Strike', () => s.puzzles.wrong(s, 'debug'));
+    this.btn('Hint now', () => s.hints.request());
+    this.btn('Add dinner notes', () => ['dinner_pet', 'dinner_year', 'dinner_date'].forEach((id) => bus.emit('clue:seen', { id })));
+    this.btn('Phone pickup', () => bus.emit('phone:pickup'));
     this.el.append(document.createElement('br'));
     for (const id of Object.keys(ROOMS)) {
       this.btn('→ ' + id, () => {

@@ -1,19 +1,39 @@
 import { CONFIG } from '../config.js';
+import { GameAudio } from '../systems/Audio.js';
+import { unlockAudio } from '../platform/gamepix.js';
 
-// Title, GameOver and Win in one tiny file.
+const PX = '"Press Start 2P", monospace';
+const HOW_TO = [
+  'WASD / ARROWS: MOVE   E: USE',
+  'SEARCH THE ROOMS. SOLVE LOCKS QUIETLY.',
+  'STUCK? PRESS H. NOTES: N',
+];
+
+// Title: DEADBOLT + "press to start". The first click/key/tap creates the AudioContext (browser autoplay rule).
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
 
   create() {
-    const { width, height } = CONFIG.view;
+    const { width } = CONFIG.view;
     this.cameras.main.setBackgroundColor('#0b0708');
-    this.add.text(width / 2, 200, 'Nikki', { fontFamily: 'Georgia', fontSize: '72px', color: '#e0607e' }).setOrigin(0.5);
-    this.add.text(width / 2, 270, 'she asked you to come over', { fontFamily: 'Georgia', fontSize: '22px', color: '#a89a8a' }).setOrigin(0.5);
-    const t = this.add.text(width / 2, 400, 'Click or press any key to knock', { fontFamily: 'Georgia', fontSize: '18px', color: '#f2e6d8' }).setOrigin(0.5);
-    this.tweens.add({ targets: t, alpha: 0.3, yoyo: true, repeat: -1, duration: 900 });
-    this.add.text(width / 2, 520, 'WASD / arrows: move   E: interact   H: ask Nikki for help   Esc: step back', { fontFamily: 'monospace', fontSize: '13px', color: '#6b5a4a' }).setOrigin(0.5);
+    this.add.text(width / 2, 150, 'DEADBOLT', { fontFamily: PX, fontSize: '64px', color: '#e0607e' }).setOrigin(0.5);
+    this.add.text(width / 2, 215, 'she asked you to come over', { fontFamily: 'Georgia', fontSize: '22px', color: '#a89a8a' }).setOrigin(0.5);
+    HOW_TO.forEach((line, i) => {
+      this.add.text(width / 2, 305 + i * 28, line, { fontFamily: PX, fontSize: '12px', color: '#f2e6d8' }).setOrigin(0.5);
+    });
+    const prompt = this.add.text(width / 2, 460, 'PRESS TO START', { fontFamily: PX, fontSize: '20px', color: '#f2e6d8' }).setOrigin(0.5);
+    this.tweens.add({ targets: prompt, alpha: 0.3, yoyo: true, repeat: -1, duration: 900 });
 
-    const go = () => this.scene.start('Game');
+    let started = false;
+    const go = () => {
+      if (started) return;
+      started = true;
+      unlockAudio();
+      const audio = new GameAudio();
+      this.registry.set('audio', audio);
+      this.registry.set('audioReady', audio.init());
+      this.scene.start('Game');
+    };
     this.input.keyboard.once('keydown', go);
     this.input.once('pointerdown', go);
   }

@@ -37,8 +37,8 @@ export function initPhoneStub(bus, el) {
     d.className = 'msg';
     d.textContent = text;
     el.appendChild(d);
-    while (el.children.length > 5) el.firstChild.remove();
-    setTimeout(() => d.remove(), 14000);
+    while (el.children.length > 40) el.firstChild.remove();
+    el.scrollTop = el.scrollHeight;
   });
 
   bus.on('mood:changed', ({ mood: m }) => {

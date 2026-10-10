@@ -2,25 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Deadbolt</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script src="https://integration.gamepix.com/sdk/v3/gamepix.sdk.js"></script>
+  <script src="assets/vendor/phaser.min.js"></script>
 </head>
 <body>
+  <div id="loading">LOADING...</div>
   <div id="stage">
     <div id="game"></div>
-    <div id="hud">
-      <div id="hud-timer"></div>
-      <div id="hud-strikes"></div>
-      <div id="hud-prompt"></div>
-      <div id="hud-toast"></div>
-      <div id="hud-inv"></div>
-    </div>
-    <div id="edge"></div>
-    <div id="panel" class="hidden"></div>
-    <div id="phone"></div>
-    <div id="debug" class="hidden"></div>
+    <div id="notes"></div>
+    <div id="overlay"></div>
   </div>
   <script type="module" src="src/main.js"></script>
 </body>

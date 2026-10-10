@@ -9,11 +9,17 @@ import { Lighting } from '../systems/Lighting.js';
 import { Scares } from '../systems/Scares.js';
 import { GameAudio } from '../systems/Audio.js';
 import { Debug } from '../systems/Debug.js';
+import { Hints } from '../systems/Hints.js';
 import { Hud } from '../ui/hud.js';
 import { Panel } from '../ui/panel.js';
 
 const T = CONFIG.tile;
 const HALF = 9; // player collision half-size
+const S = T / 16; // integer upscale for 16px art on the 32px grid
+const PIXEL_ROOM = 'basement'; // room redrawn in the new pixel-art style so far
+const IMRAN_FRAME = 378; // roguelikeChar: front-facing only, so left/right use flipX and a wobble
+const DECOR_TINT = 0x8a8a9c;
+const OBJECT_ART = { fusebox: 'px_fusebox', wall: 'px_chalk' };
 
 export class GameScene extends Phaser.Scene {
   constructor() { super('Game'); }
@@ -37,10 +43,15 @@ export class GameScene extends Phaser.Scene {
       solved: this.puzzles.solvedCount,
       timeFraction: this.timer.fraction,
     }));
-    this.audio = new GameAudio();
-    this.audio.init().then(() => { this.audio.startAmbient(); this.audio.startHeartbeat(); });
-    this.input.keyboard.once('keydown', () => this.audio.ctx?.resume());
-    this.input.once('pointerdown', () => this.audio.ctx?.resume());
+    this.hints = new Hints(this);
+    // Audio is created by TitleScene on the first click; direct boots (e.g. debug) fall back to a lazy gesture.
+    this.audio = this.registry.get('audio') || new GameAudio();
+    const audioReady = this.registry.get('audioReady') || new Promise((res) => {
+      const start = () => res(this.audio.init());
+      this.input.keyboard.once('keydown', start);
+      this.input.once('pointerdown', start);
+    });
+    audioReady.then(() => { this.audio.startAmbient(); this.audio.startHeartbeat(); });
 
     this.drawWorld();
     this.makeObjects();
@@ -68,10 +79,11 @@ export class GameScene extends Phaser.Scene {
   drawWorld() {
     this.cameras.main.setBackgroundColor('#0b0708');
     const g = this.add.graphics().setDepth(0);
-    for (const r of Object.values(ROOMS)) {
+    for (const [id, r] of Object.entries(ROOMS)) {
       for (let y = r.y; y < r.y + r.h; y++) {
         for (let x = r.x; x < r.x + r.w; x++) {
-          g.fillStyle((x + y) % 2 ? r.color : r.alt).fillRect(x * T, y * T, T, T);
+          if (id === PIXEL_ROOM) this.add.image(x * T, y * T, this.floorKey(x, y)).setOrigin(0).setScale(S).setDepth(0);
+          else g.fillStyle((x + y) % 2 ? r.color : r.alt).fillRect(x * T, y * T, T, T);
         }
       }
     }
@@ -80,15 +92,32 @@ export class GameScene extends Phaser.Scene {
     for (let y = 0; y < MAP_H; y++) {
       for (let x = 0; x < MAP_W; x++) {
         if (this.grid[y][x] === 1) continue;
-        if (this.touchesFloor(x, y)) this.add.image(x * T, y * T, 'wall').setOrigin(0).setDepth(1);
+        if (!this.touchesFloor(x, y)) continue;
+        if (this.touchesRoom(x, y, PIXEL_ROOM)) {
+          const front = inRoom(x, y + 1) === PIXEL_ROOM;
+          this.add.image(x * T, y * T, front ? 'px_wall_block' : 'px_wall_top').setOrigin(0).setScale(S).setDepth(1);
+        } else this.add.image(x * T, y * T, 'wall').setOrigin(0).setDepth(1);
       }
     }
 
     this.doorSprites = {};
     for (const [id, d] of Object.entries(DOORS)) {
       this.doorSprites[id] = this.add.image(d.x * T, d.y * T, 'door_locked').setOrigin(0).setDepth(2);
+      if (id === 'basement') this.doorSprites[id].setScale(S);
     }
     this.refreshDoors();
+  }
+
+  floorKey(x, y) {
+    const h = (((x * 73856093) ^ (y * 19349663)) >>> 0) % 13;
+    return h === 0 ? 'px_floor_concrete_crack' : h === 1 ? 'px_floor_concrete_stain' : 'px_floor_concrete';
+  }
+
+  touchesRoom(x, y, room) {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (this.grid[y + dy]?.[x + dx] === 1 && inRoom(x + dx, y + dy) === room) return true;
+    }
+    return false;
   }
 
   touchesFloor(x, y) {
@@ -108,7 +137,8 @@ export class GameScene extends Phaser.Scene {
 
   refreshDoors() {
     for (const id of Object.keys(DOORS)) {
-      this.doorSprites[id].setTexture(this.doorOpen(id) ? 'door_open' : 'door_locked');
+      const pre = id === 'basement' ? 'px_door_' : 'door_';
+      this.doorSprites[id].setTexture(pre + (this.doorOpen(id) ? 'open' : 'locked'));
     }
   }
 
@@ -123,15 +153,32 @@ export class GameScene extends Phaser.Scene {
   }
 
   makeObjects() {
+    this.makeBasementDecor();
     this.objects = OBJECTS.map((o) => {
-      const sprite = this.add.image(o.x * T, o.y * T, 'obj').setOrigin(0).setTint(o.color).setDepth(3);
+      const art = OBJECT_ART[o.id];
+      const sprite = art
+        ? this.add.image(o.x * T, o.y * T, art).setOrigin(0).setScale(S).setDepth(3)
+        : this.add.image(o.x * T, o.y * T, 'obj').setOrigin(0).setTint(o.color).setDepth(3);
       return { ...o, sprite, cx: o.x * T + T / 2, cy: o.y * T + T / 2 };
     });
     this.promptText = null;
   }
 
+  // Non-interactive Kenney props, darkened to the horror palette. [frame, tileX, tileY]
+  makeBasementDecor() {
+    const place = (frame, x, y, depth = 2) => this.add.image(x * T, y * T, 'indoor', frame)
+      .setOrigin(0).setScale(S).setTint(DECOR_TINT).setDepth(depth);
+    [[478, 6, 2], [479, 7, 2], [480, 8, 2]].forEach(([f, x, y]) => place(f, x, y));
+    [[182, 5, 2], [182, 10, 2]].forEach(([f, x, y]) => place(f, x, y).setTint(0xc8b0a0));
+    [[266, 3, 10], [267, 4, 10], [266, 3, 11]].forEach(([f, x, y]) => place(f, x, y));
+    [[0, 9, 10], [1, 10, 10], [2, 11, 10], [54, 9, 11], [56, 11, 11]].forEach(([f, x, y]) => place(f, x, y));
+    place(264, 12, 8);
+    place(97, 3, 4);
+  }
+
   makePlayer() {
-    this.player = this.add.sprite(START.x * T + T / 2, START.y * T + T / 2, 'player').setDepth(10);
+    this.facing = Math.PI / 2;
+    this.player = this.add.sprite(START.x * T + T / 2, START.y * T + T / 2, 'chars', IMRAN_FRAME).setScale(S).setDepth(10);
   }
 
   // ---------- input ----------
@@ -152,6 +199,7 @@ export class GameScene extends Phaser.Scene {
     this.timer.update(dt);
     this.hud.setTimer(this.timer.format());
     if (!this.panel.isOpen) this.movePlayer(dt);
+    this.hints.update(dt);
     this.updatePrompt();
     this.trackRoom();
 
@@ -169,7 +217,10 @@ export class GameScene extends Phaser.Scene {
     const k = this.keys;
     let vx = (c.right.isDown || k.D.isDown ? 1 : 0) - (c.left.isDown || k.A.isDown ? 1 : 0);
     let vy = (c.down.isDown || k.S.isDown ? 1 : 0) - (c.up.isDown || k.W.isDown ? 1 : 0);
-    if (!vx && !vy) return;
+    if (!vx && !vy) { this.player.setAngle(0); return; }
+    this.facing = Math.atan2(vy, vx);
+    if (vx) this.player.setFlipX(vx < 0);
+    this.player.setAngle(Math.sin(this.time.now / 70) * 5);
     const len = Math.hypot(vx, vy);
     const step = (CONFIG.playerSpeed * dt) / 1000;
     vx = (vx / len) * step;
@@ -274,16 +325,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   askHint() {
-    if (this.ended) return;
-    const pm = this.puzzles;
-    let id = pm.active;
-    if (!id) {
-      const here = pm.all.find((p) => p.room === this.currentRoom && !pm.isSolved(p.id));
-      id = (here || pm.all.find((p) => !pm.isSolved(p.id)))?.id || 'door';
-    }
-    this.timer.add(-CONFIG.hintPenaltySeconds);
-    this.hud.toast(`Nikki helps... but it costs you ${CONFIG.hintPenaltySeconds}s.`);
-    bus.emit('hint:requested', { id });
+    if (!this.ended) this.hints.request();
   }
 
   refreshInventory() {

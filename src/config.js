@@ -89,6 +89,9 @@ export const CONFIG = {
     furious: { radius: 125, flicker: 0.60, heartbeat: 125, ambient: 0.24, darkness: 0.88 },
   },
 
+  // Tiered hints (script/hints.js). Next tier on H or after this many idle seconds on the current puzzle.
+  hints: { idleSeconds: 60 },
+
   // ---- legacy (old timer/strikes game path). Removed together with Timer/Mood/Scares/map.js in the realign. ----
   totalSeconds: 15 * 60,
   maxStrikes: 5,
